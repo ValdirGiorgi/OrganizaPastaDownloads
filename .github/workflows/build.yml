@@ -1,0 +1,38 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart test
+      - run: dart compile exe bin/organiza_downloads.dart -o build/organiza_downloads_linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: organiza_downloads_linux
+          path: build/organiza_downloads_linux
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart test
+      - run: dart compile exe bin/organiza_downloads.dart -o build\organiza_downloads.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: organiza_downloads_windows
+          path: build\organiza_downloads.exe

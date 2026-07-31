@@ -1,0 +1,7 @@
+.dart_tool/
+.packages
+pubspec.lock
+build/
+organiza_downloads_relatorio.csv
+_organiza_quarentena/
+_auto_organizado/

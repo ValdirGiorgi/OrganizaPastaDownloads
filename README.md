@@ -3,8 +3,10 @@
 CLI em Dart para analisar itens diretos de uma pasta de downloads e separar arquivos/pastas em quarentena e auto-organizados.
 
 Por padrao o programa nao move nem apaga arquivos. Ele imprime um resumo no console e gera um CSV e um log.
-Quando `--csv` ou `--log` nao sao informados, ambos sao salvos dentro de `<pasta analisada>/_auto_organizado` (o CSV direto nela, o log em `_auto_organizado/logs`). Use `--csv`/`--log` (ou as opcoes 4/5 do menu) para escolher outro lugar.
+Quando `--csv` ou `--log` nao sao informados, ambos sao salvos em `<pasta analisada>/_auto_organizado/logs`. Use `--csv`/`--log` (ou as opcoes 4/5 do menu) para escolher outro lugar.
 Durante a execucao, o terminal mostra uma barra de progresso para varredura, classificacao, duplicatas e gravacao do CSV.
+
+A historia do projeto, o prompt usado na classificacao e o passo a passo completo no Linux e no Windows estao neste artigo: [Minha pasta Downloads virou um deposito](https://blog.valdir.dev.br/minha-pasta-downloads).
 
 ## Uso
 
@@ -117,6 +119,66 @@ O Dart SDK precisa estar instalado e no `PATH`.
 
 Tambem existe um workflow em `.github/workflows/build.yml` para gerar os artefatos Linux e Windows pelo GitHub Actions.
 
+## Rotina Automatica
+
+Linux. O script `scripts/organizar_arquivos.sh` roda em modo real na pasta de downloads e na area de trabalho (resolvidas por `xdg-user-dir`), guarda os logs em `~/.local/share/organiza_downloads/logs`, os relatorios em `~/.local/share/organiza_downloads/relatorios` e avisa por `notify-send` no final. Argumentos extras sao repassados ao binario:
+
+```bash
+./scripts/organizar_arquivos.sh --ai
+```
+
+Para rodar a cada login, crie `~/.config/autostart/organizar-arquivos.desktop`:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Organizar arquivos (login)
+Exec=/caminho/do/projeto/scripts/organizar_arquivos.sh --ai
+Icon=folder
+Terminal=false
+X-GNOME-Autostart-enabled=true
+```
+
+Para rodar so quando quiser, use `scripts/organizar_arquivos_launcher.sh` em um atalho: ele chama o script com `--pause --ai` e espera Enter antes de fechar o terminal.
+
+Windows. O equivalente e `scripts/organizar_arquivos.ps1`, com o mesmo comportamento: resolve as pastas Downloads e Desktop pelo registro (respeita redirecionamento do OneDrive), grava logs e relatorios em `%LOCALAPPDATA%\organiza_downloads` e aceita argumentos extras.
+
+```powershell
+.\scripts\organizar_arquivos.ps1 --ai
+```
+
+Para rodar no logon:
+
+```powershell
+$acao = New-ScheduledTaskAction -Execute 'powershell.exe' `
+  -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\caminho\scripts\organizar_arquivos.ps1" --ai'
+$gatilho = New-ScheduledTaskTrigger -AtLogOn
+Register-ScheduledTask -TaskName 'Organizar Downloads' -Action $acao -Trigger $gatilho
+```
+
+Para um atalho manual, use `-Pause` para o terminal esperar Enter antes de fechar.
+
+## Chave Da API
+
+A chave nunca e gravada em disco pelo programa, nao aparece em log e e redigida como `<redacted>` nos arquivos de debug. Ela vem de `--api-key` ou da variavel de ambiente `DEEPSEEK_API_KEY`; sem nenhuma das duas, o modo interativo pede a chave com digitacao mascarada.
+
+Linux, para as execucoes automaticas da sessao grafica:
+
+```bash
+mkdir -p ~/.config/environment.d
+# edite o arquivo em um editor e coloque a linha DEEPSEEK_API_KEY=...
+# nao use echo: a chave ficaria gravada no historico do shell
+chmod 600 ~/.config/environment.d/deepseek.conf
+```
+
+Windows:
+
+```powershell
+$chave = Read-Host 'Cole a chave da API'
+[Environment]::SetEnvironmentVariable('DEEPSEEK_API_KEY', $chave, 'User')
+Remove-Variable chave
+```
+
 ## Seguranca
 
 - Nao existe comando de exclusao definitiva nesta versao.
@@ -126,3 +188,7 @@ Tambem existe um workflow em `.github/workflows/build.yml` para gerar os artefat
 - `--mode real` exige permissao de escrita na pasta analisada para criar as pastas de saida e mover arquivos.
 - Duplicatas confirmadas por `--hash-duplicates` vencem a classificacao da IA: a primeira copia e mantida e as demais vao para quarentena.
 - Itens diretos com nome de copia, como `arquivo (1).pdf` ou `pasta (1)`, tambem vao para `duplicados` como duplicata provavel, sem exclusao definitiva.
+
+## Licenca
+
+MIT. Veja [LICENSE](LICENSE).

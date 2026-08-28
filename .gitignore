@@ -2,6 +2,11 @@
 .packages
 pubspec.lock
 build/
+
+# Saidas de execucao: nunca versionar, contem nomes reais de arquivos pessoais
+debug/
 organiza_downloads_relatorio.csv
+*_organiza_downloads_relatorio.csv
+*_organiza_downloads.log
 _organiza_quarentena/
 _auto_organizado/
